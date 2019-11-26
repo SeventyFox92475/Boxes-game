@@ -15,6 +15,7 @@ coordsLst = []
 grid = []
 lines = []
 clickedCoords = []
+neededCoords = []
 current_x = 0
 current_y = 0
 mouse_down = False
@@ -25,10 +26,13 @@ player1Width = ''
 player1Height = ''
 msg = ''
 wait = False
+prevPoints = 0
+points = 0
+anotherTurn = True
 
 # Socket Stuff
 port = 10000
-host = '192.168.245.1'
+host = '192.168.126.1'
 socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server = host, port
 socket.connect(server)
@@ -97,45 +101,55 @@ def get_events():
             mouse_down = False
 
 def mouseDown():
-    global pos, wait, msg, mouse_down, socketMsg, something, player1X, player1Y, player1Width, player1Height
+    global pos, wait, msg, mouse_down, anotherTurn, socketMsg, something, player1X, player1Y, player1Width, player1Height, neededCoords
     for coords in coordsLst:
-        if not wait:
+        if not wait or anotherTurn is True:
             if (pos[0], pos[1], 50, 10) not in clickedCoords:
                 if ((coords[0] + 30 > pos[0] and coords[0] + 10 < pos[0]) and (coords[1] + 10 > pos[1] and coords[1] < pos[1])):
                     lines.append(Line(coords[0], coords[1], (255, 0, 0), wn, 50, 10))
                     clickedCoords.append((coords[0], coords[1], 50, 10))
+                    neededCoords.append((coords[0], coords[1], 50, 10))
                     redrawWin()
                     fullStr = str(coords[0]) + ' ' + str(coords[1]) + ' ' + '50' + ' ' + '10' + ' '
                     socket.send(bytes(fullStr, encoding='utf8'))  
                     wait = True
+                    anotherTurn = False
             if (pos[0], pos[1], 10, 50) not in clickedCoords:   
                 if ((coords[1] + 40 > pos[1] and coords[1] + 10 < pos[1]) and (coords[0] + 10 > pos[0] and coords[0] < pos[0])):
                     lines.append(Line(coords[0], coords[1], (255, 0, 0), wn, 10, 50))
                     clickedCoords.append((coords[0], coords[1], 10, 50))
+                    neededCoords.append((coords[0], coords[1], 10, 50))
                     redrawWin()
                     fullStr = str(coords[0]) + ' ' + str(coords[1]) + ' ' + '10' + ' ' + '50' + ' '
                     socket.send(bytes(fullStr, encoding='utf8'))
                     wait = True
+                    anotherTurn = False
 
-# TODO Get all sides to work, include length and width, not just the position, that isn't enough
-def getWin():
-    global clickedCoords
-    for coords in clickedCoords:
+# TODO: Make multiple boxes work, not just 1
+def getPoints():
+    global clickedCoords, neededCoords, anotherTurn, points
+    for coords in neededCoords:
         winCounter = 0
-        for coords2 in clickedCoords:
+        for coords2 in neededCoords:
             if (coords[0] + 40, coords[1], 10, 50) == coords2:
                 winCounter += 1
-        for coords2 in clickedCoords:
+        for coords2 in neededCoords:
             if (coords[0], coords[1] + 40, 50, 10) == coords2:
                 winCounter += 1
-        for coords2 in clickedCoords:
-            if (coords[0], coords[1], 50, 10) == coords2:
-                winCounter += 1
-        for coords2 in clickedCoords:
+        for coords2 in neededCoords:
             if (coords[0], coords[1], 10, 50) == coords2:
                 winCounter += 1
+        for coords2 in neededCoords:
+            if (coords[0], coords[1], 50, 10) == coords2:
+                winCounter += 1
         if winCounter == 4:
-            print('Win!')
+            neededCoords.remove((coords[0], coords[1] + 40, 50, 10))
+            neededCoords.remove((coords[0] + 40, coords[1], 10, 50))
+            neededCoords.remove((coords[0], coords[1], 50, 10))
+            neededCoords.remove((coords[0], coords[1], 10, 50))
+            points += 1
+            anotherTurn = True
+            print('Another Turn!')
 
 
 def getRecv():
@@ -170,6 +184,6 @@ thread.start()
 # Main Game loop
 while True:
     # Calls Functions
-    getWin()
+    getPoints()
     redrawWin()
     get_events()

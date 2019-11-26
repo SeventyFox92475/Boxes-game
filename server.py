@@ -4,7 +4,7 @@ import socket
 
 numOfClients = 0
 MySocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-MySocket.bind(('192.168.245.1', 10000))
+MySocket.bind(('192.168.126.1', 10000))
 print('Socket started')
 MySocket.listen(5)
 c, a = MySocket.accept()
